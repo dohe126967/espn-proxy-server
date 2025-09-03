@@ -1,58 +1,58 @@
 // espn-proxy.mjs
-import http from 'http';
-import url from 'url';
+import express from 'express';
 import fetch from 'node-fetch';
+import dotenv from 'dotenv';
 
-const espn_s2 = process.env.ESPN_s2;
-const swid = process.env.SWID;
+dotenv.config();
 
-const server = http.createServer(async (req, res) => {
-  const parsedUrl = url.parse(req.url, true);
-  const { pathname, query } = parsedUrl;
+const app = express();
+const PORT = process.env.PORT || 8080;
 
-  if (pathname === '/' && query.leagueId && query.seasonId) {
-    const { leagueId, seasonId } = query;
-    const apiUrl = `https://fantasy.espn.com/apis/v3/games/ffl/seasons/${seasonId}/segments/0/leagues/${leagueId}`;
+app.get('/', async (req, res) => {
+  const { leagueId, seasonId } = req.query;
 
-    try {
-      const response = await fetch(apiUrl, {
-        headers: {
-          'X-Fantasy-Source': 'kona',
-          'X-Fantasy-Platform': 'kona-PROD-a7898f83',
-          'X-Fantasy-Filter': '{}',
-          'Referer': 'https://fantasy.espn.com/',
-          'Cookie': `espn_s2=${espn_s2}; SWID=${swid}`
-        }
-      });
+  if (!leagueId || !seasonId) {
+    return res.status(400).json({ error: 'Missing leagueId or seasonId' });
+  }
 
-      const contentType = response.headers.get('content-type');
-      const raw = await response.text();
+  const espn_s2 = process.env.ESPN_s2;
+  const swid = process.env.SWID;
 
-      if (!contentType.includes('application/json')) {
-        res.writeHead(401, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          error: 'Not authorized or wrong response',
-          contentType,
-          raw
-        }));
-        return;
+  const url = `https://fantasy.espn.com/apis/v3/games/ffl/seasons/${seasonId}/segments/0/leagues/${leagueId}`;
+
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'X-Fantasy-Source': 'kona',
+        'X-Fantasy-Platform': 'kona-PROD-a7898f83',
+        'X-Fantasy-Filter': '{}',
+        'Referer': 'https://fantasy.espn.com/',
+        'Cookie': `espn_s2=${espn_s2}; SWID=${swid}`
       }
+    });
 
-      const data = JSON.parse(raw);
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(data));
+    const contentType = response.headers.get('content-type');
+    const raw = await response.text();
 
-    } catch (err) {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Failed to fetch data from ESPN', details: err.message }));
+    if (!contentType.includes('application/json')) {
+      return res.status(401).json({
+        error: 'Not authorized or wrong response',
+        contentType,
+        raw
+      });
     }
-  } else {
-    res.writeHead(404, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Invalid path or missing query params' }));
+
+    const data = JSON.parse(raw);
+    return res.status(200).json(data);
+
+  } catch (error) {
+    return res.status(500).json({
+      error: 'Failed to fetch data from ESPN',
+      details: error.message
+    });
   }
 });
 
-const PORT = process.env.PORT || 8080;
-server.listen(PORT, () => {
-  console.log(`Server is listening on port ${PORT}`);
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
