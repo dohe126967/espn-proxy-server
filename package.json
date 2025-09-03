@@ -1,6 +1,10 @@
 {
   "name": "espn-proxy",
   "type": "module",
+  "main": "espn-proxy.mjs",
+  "scripts": {
+    "start": "node espn-proxy.mjs"
+  },
   "dependencies": {
     "node-fetch": "^3.3.2"
   }
