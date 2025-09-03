@@ -5,17 +5,17 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 
-app.get('/', (req, res) => {
-  res.send('ESPN Proxy Server is running!');
-});
-
-app.get('/espn-proxy', async (req, res) => {
+app.get('/', async (req, res) => {
   const { leagueId, seasonId } = req.query;
 
   const espn_s2 = process.env.ESPN_s2;
   const swid = process.env.SWID;
+
+  if (!leagueId || !seasonId) {
+    return res.status(400).json({ error: 'Missing leagueId or seasonId' });
+  }
 
   const url = `https://fantasy.espn.com/apis/v3/games/ffl/seasons/${seasonId}/segments/0/leagues/${leagueId}`;
 
@@ -50,5 +50,5 @@ app.get('/espn-proxy', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Server is listening on port ${PORT}`);
+  console.log(`✅ Server is listening on port ${PORT}`);
 });
