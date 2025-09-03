@@ -1,7 +1,17 @@
-
+import express from 'express';
 import fetch from 'node-fetch';
+import dotenv from 'dotenv';
 
-export default async (req, res) => {
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.get('/', (req, res) => {
+  res.send('ESPN Proxy Server is running!');
+});
+
+app.get('/espn-proxy', async (req, res) => {
   const { leagueId, seasonId } = req.query;
 
   const espn_s2 = process.env.ESPN_s2;
@@ -37,4 +47,8 @@ export default async (req, res) => {
   } catch (error) {
     return res.status(500).json({ error: 'Failed to fetch data from ESPN', details: error.message });
   }
-};
+});
+
+app.listen(PORT, () => {
+  console.log(`Server is listening on port ${PORT}`);
+});
